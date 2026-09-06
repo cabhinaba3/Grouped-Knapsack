@@ -22,8 +22,9 @@ double millisBetween(Clock::time_point a, Clock::time_point b) {
 
 double SolveOutcome::errorPercent() const { return (vStar - vGrouped) / vStar * 100.0; }
 
-double resolveDelta(const Instance& inst, double delta, int numGroups) {
-    return delta > 0.0 ? delta : deltaForGroupCount(inst.v, inst.w, numGroups);
+double resolveDelta(const Instance& inst, double relativeDelta, int numGroups) {
+    return relativeDelta > 0.0 ? deltaFromRelativeTolerance(inst.v, inst.w, relativeDelta)
+                                : deltaForGroupCount(inst.v, inst.w, numGroups);
 }
 
 SolveOutcome solveBoth(const Instance& inst, double delta) {
@@ -64,7 +65,7 @@ Timings timeBoth(const Instance& inst, double delta, SolveOutcome& outcome) {
 }
 
 InstanceBatch generateBatch(const std::vector<InstanceSpec>& specs, const GenerateOptions& opts,
-                            double delta, int numGroups) {
+                            double relativeDelta, int numGroups) {
     InstanceBatch batch;
     batch.instances.resize(specs.size());
     batch.deltas.resize(specs.size());
@@ -73,7 +74,7 @@ InstanceBatch generateBatch(const std::vector<InstanceSpec>& specs, const Genera
         GenerateOptions instOpts = opts;
         instOpts.seed = specs[i].seed;
         batch.instances[i] = generateInstance(specs[i].n, instOpts);
-        batch.deltas[i] = resolveDelta(batch.instances[i], delta, numGroups);
+        batch.deltas[i] = resolveDelta(batch.instances[i], relativeDelta, numGroups);
     });
 
     return batch;

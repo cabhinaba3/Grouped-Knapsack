@@ -27,11 +27,12 @@ struct SolveOutcome {
     double errorPercent() const;
 };
 
-// The grouping tolerance for one instance: `delta` when positive, otherwise
-// the value derived from this instance's own ratio spread that yields
-// roughly numGroups groups. Deriving delta involves a sort, so callers do
-// it once per instance rather than once per repetition.
-double resolveDelta(const Instance& inst, double delta, int numGroups);
+// The grouping tolerance for one instance: when `relativeDelta` is positive
+// (must be in (0,1)), that fraction of this instance's trimmed ratio spread;
+// otherwise the value derived from the same spread that yields roughly
+// numGroups groups. Deriving either involves a sort, so callers do it once
+// per instance rather than once per repetition.
+double resolveDelta(const Instance& inst, double relativeDelta, int numGroups);
 
 // Dantzig plus the full grouped pipeline (build the groups, then run
 // Algorithm 1). Pure and side-effect free, so it is safe to call
@@ -62,9 +63,10 @@ struct InstanceBatch {
 // Builds every spec's instance and grouping tolerance in parallel. This is
 // the untimed setup work, so running it concurrently costs the measurements
 // nothing. opts supplies the value/cost/limit ranges and budget ratio; each
-// spec's own seed overrides opts.seed.
+// spec's own seed overrides opts.seed. relativeDelta and numGroups are
+// forwarded to resolveDelta as-is.
 InstanceBatch generateBatch(const std::vector<InstanceSpec>& specs, const GenerateOptions& opts,
-                            double delta, int numGroups);
+                            double relativeDelta, int numGroups);
 
 double median(std::vector<double> values);
 double mean(const std::vector<double>& values);

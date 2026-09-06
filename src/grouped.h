@@ -61,4 +61,11 @@ std::vector<Group> groupByRatioBins(const std::vector<double>& v,
 // groupByRatioBins) yields roughly numGroups groups.
 double deltaForGroupCount(const std::vector<double>& v, const std::vector<double>& w, int numGroups);
 
+// Delta as a fraction (relativeDelta, in (0,1)) of the same trimmed ratio
+// spread deltaForGroupCount uses, rather than a fixed target group count.
+// This keeps the grouping tolerance comparable across instances whose v, w
+// ranges differ, instead of being an absolute value tied to one scale.
+double deltaFromRelativeTolerance(const std::vector<double>& v, const std::vector<double>& w,
+                                   double relativeDelta);
+
 }  // namespace gka

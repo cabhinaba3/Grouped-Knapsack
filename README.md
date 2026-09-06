@@ -286,8 +286,14 @@ at the finest tested `delta`.
 ```
 gka_dantzig [--seed N] [--budget-ratio R] [--sweep dense|sparse] [--max-n N]
             [--num-groups M] [--delta D] [--threads T]
+            [--v-dist uniform|normal] [--v-mean M] [--v-stddev S]
+            [--w-dist uniform|normal] [--w-mean M] [--w-stddev S]
+            [--u-dist uniform|normal] [--u-mean M] [--u-stddev S]
 gka_experiments [--outdir DIR] [--seed-base N] [--num-seeds S] [--reps R] [--num-groups M]
-                [--budget-ratio B] [--sweep dense|sparse] [--max-n N]
+                [--delta D] [--budget-ratio B] [--sweep dense|sparse] [--max-n N]
+                [--v-dist uniform|normal] [--v-mean M] [--v-stddev S]
+                [--w-dist uniform|normal] [--w-mean M] [--w-stddev S]
+                [--u-dist uniform|normal] [--u-mean M] [--u-stddev S]
                 [--sensitivity-n N] [--sensitivity-points P] [--sensitivity-seeds S]
                 [--threads T]
 ```
@@ -295,12 +301,27 @@ gka_experiments [--outdir DIR] [--seed-base N] [--num-seeds S] [--reps R] [--num
 Defaults: `seed=0`/`seed-base=0`, `budget-ratio=0.5`, `num-groups=20`,
 `num-seeds=10`, `reps=5`, `sweep=dense`, `max-n=100000`,
 `sensitivity-n=5000`, `sensitivity-points=25`, `sensitivity-seeds=5`,
-`threads=`all cores. Run either binary with `--help` for the full list.
+`threads=`all cores, `v/w/u-dist=uniform`. Run either binary with `--help`
+for the full list.
 
 `--sweep sparse` gives the 13-point sequence `10, 20, 50, ..., 100000` for
 quick runs; `--sweep dense` (the default) resolves the runtime curve more
 finely. `--max-n` sets the largest item count either way and is rejected
 above `INT_MAX`.
+
+`--delta` is a fraction in `(0,1)` of the instance's trimmed ratio spread
+(see "How delta is chosen"), not an absolute tolerance; it overrides
+`--num-groups` when set.
+
+Each of `v_i`, `w_i`, `u_i` is drawn independently and can be switched from
+the default `uniform` (over `[lo,hi]`, currently `[1,100]` for `v`/`w` and
+`[0,1]` for `u`) to `normal`, via `--{v,w,u}-mean`/`--{v,w,u}-stddev`.
+A `normal` draw outside `[lo,hi]` is rejected and redrawn (bounded retries)
+rather than clamped, so accepted values stay genuinely Gaussian-shaped
+within the range instead of piling up at an edge; too tight a `[lo,hi]`
+for the given mean/stddev raises a clear error instead of retrying forever.
+Other distributions (lognormal, exponential, ...) can be attached in C++
+via `FieldSpec::sampler` but have no CLI spelling.
 
 <!-- ## Known limitations / not yet implemented
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -27,10 +29,36 @@ struct Instance {
     double totalCapacityCost() const;
 };
 
+// How one field (v, w, or u) gets drawn.
+enum class DistributionKind { Uniform, Normal, Custom };
+
+// Parses "uniform"/"normal" (case-sensitive); throws std::invalid_argument
+// on anything else, including "custom" -- Custom requires a sampler set
+// directly in C++ and has no CLI spelling.
+DistributionKind parseDistributionKind(const std::string& text);
+const char* distributionKindName(DistributionKind kind);
+
+// One field's random draw.
+//   Uniform: samples uniformly in [lo, hi].
+//   Normal:  samples Normal(mean, stddev), re-drawing (bounded retries) any
+//            value outside [lo, hi] so the field's hard constraints still
+//            hold (v, w > 0; u in [0,1]) -- a rejection-sampled truncated
+//            normal rather than a clamp, so the accepted distribution stays
+//            genuinely Gaussian-shaped within the bounds.
+//   Custom:  calls `sampler(rng)` directly, an escape hatch for any other
+//            distribution (lognormal, exponential, ...) a caller wants;
+//            only reachable by constructing a FieldSpec in C++, not via CLI.
+struct FieldSpec {
+    DistributionKind dist = DistributionKind::Uniform;
+    double lo = 0.0, hi = 1.0;         // Uniform's range; Normal's rejection bounds
+    double mean = 0.0, stddev = 1.0;   // Normal only
+    std::function<double(std::mt19937_64&)> sampler;  // Custom only
+};
+
 struct GenerateOptions {
-    double vMin = 1.0, vMax = 100.0;   // range for v_i
-    double wMin = 1.0, wMax = 100.0;   // range for w_i
-    double uMin = 0.0, uMax = 1.0;     // range for u_i, must stay within [0,1]
+    FieldSpec vSpec{DistributionKind::Uniform, 1.0, 100.0, 50.5, 16.5, nullptr};  // v_i
+    FieldSpec wSpec{DistributionKind::Uniform, 1.0, 100.0, 50.5, 16.5, nullptr};  // w_i
+    FieldSpec uSpec{DistributionKind::Uniform, 0.0, 1.0, 0.5, 1.0 / 6, nullptr};  // u_i, in [0,1]
     double budgetRatio = 0.5;          // C = budgetRatio * F^w_{[n]}, must be in (0,1)
     uint64_t seed = 0;
 };

@@ -170,22 +170,26 @@ std::vector<Group> groupByRatioBins(const std::vector<double>& v,
     return groups;
 }
 
-double deltaForGroupCount(const std::vector<double>& v, const std::vector<double>& w, int numGroups) {
+namespace {
+
+// The trimmed (5%-95%) spread of the ratio v_i/w_i distribution.
+//
+// The raw min/max ratio is an outlier-sensitive statistic that widens as n
+// grows (more extreme order statistics get sampled), which would otherwise
+// make a delta derived from it drift with n even though the bulk of the
+// ratio distribution hasn't changed. Trimming the extreme tails ties delta
+// to that bulk instead.
+double trimmedRatioSpread(const std::vector<double>& v, const std::vector<double>& w,
+                          const char* caller) {
     const std::size_t n = v.size();
-    if (w.size() != n) throw std::invalid_argument("deltaForGroupCount: v and w must have the same length");
-    if (n == 0) throw std::invalid_argument("deltaForGroupCount: need at least one item");
-    if (numGroups <= 0) throw std::invalid_argument("deltaForGroupCount: numGroups must be positive");
+    if (w.size() != n)
+        throw std::invalid_argument(std::string(caller) + ": v and w must have the same length");
+    if (n == 0) throw std::invalid_argument(std::string(caller) + ": need at least one item");
 
     std::vector<double> ratio(n);
     for (std::size_t i = 0; i < n; ++i) ratio[i] = v[i] / w[i];
     std::sort(ratio.begin(), ratio.end());
 
-    // The raw min/max ratio is an outlier-sensitive statistic that widens
-    // as n grows (more extreme order statistics get sampled), which would
-    // otherwise make a *fixed* numGroups target yield a coarser bin width
-    // -- and a larger intra-group cost spread whi_k-wlo_k -- as n grows,
-    // even though the bulk of the ratio distribution hasn't changed.
-    // Trimming the extreme tails ties delta to that bulk instead.
     constexpr double kTrimFraction = 0.05;
     std::size_t trim = static_cast<std::size_t>(kTrimFraction * static_cast<double>(n));
     std::size_t lo = trim;
@@ -195,9 +199,25 @@ double deltaForGroupCount(const std::vector<double>& v, const std::vector<double
         hi = n - 1;
     }
 
-    double range = ratio[hi] - ratio[lo];
+    return ratio[hi] - ratio[lo];
+}
+
+}  // namespace
+
+double deltaForGroupCount(const std::vector<double>& v, const std::vector<double>& w, int numGroups) {
+    if (numGroups <= 0) throw std::invalid_argument("deltaForGroupCount: numGroups must be positive");
+    double range = trimmedRatioSpread(v, w, "deltaForGroupCount");
     if (range <= 0.0) return 1.0;  // degenerate: (trimmed) ratios identical, one group
     return range / (2.0 * numGroups);
+}
+
+double deltaFromRelativeTolerance(const std::vector<double>& v, const std::vector<double>& w,
+                                   double relativeDelta) {
+    if (relativeDelta <= 0.0 || relativeDelta >= 1.0)
+        throw std::invalid_argument("deltaFromRelativeTolerance: relativeDelta must be in (0,1)");
+    double range = trimmedRatioSpread(v, w, "deltaFromRelativeTolerance");
+    if (range <= 0.0) return 1.0;  // degenerate: (trimmed) ratios identical, one group
+    return relativeDelta * range;
 }
 
 }  // namespace gka

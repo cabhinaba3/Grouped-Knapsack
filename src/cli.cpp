@@ -122,4 +122,10 @@ void requireGreaterThan(const char* flag, int value, int bound) {
                                     std::to_string(bound));
 }
 
+void requireInOpenInterval(const char* flag, double value, double lo, double hi) {
+    if (value <= lo || value >= hi)
+        throw std::invalid_argument(std::string(flag) + " must be in (" + std::to_string(lo) +
+                                    ", " + std::to_string(hi) + ")");
+}
+
 }  // namespace gka::cli

@@ -26,6 +26,9 @@ struct Config {
     int numGroups = 20;
     double delta = -1.0;  // < 0 means "derive per instance from numGroups"
     int threads = 0;      // 0 means "every hardware thread"
+    std::string vDistName = "uniform";
+    std::string wDistName = "uniform";
+    std::string uDistName = "uniform";
 };
 
 gka::cli::Parser buildParser(const char* prog, Config& cfg) {
@@ -44,12 +47,29 @@ gka::cli::Parser buildParser(const char* prog, Config& cfg) {
              [&cfg](const std::string& value) { cfg.maxN = std::stoll(value); })
         .add("--num-groups", "M", "Target number of groups when --delta is unset (default 20)",
              cfg.numGroups)
-        .add("--delta", "D", "Fixed grouping tolerance; overrides --num-groups", cfg.delta)
+        .add("--delta", "D",
+             "Grouping tolerance as a fraction of the ratio spread, in (0,1); "
+             "overrides --num-groups",
+             cfg.delta)
+        .add("--v-dist", "DIST", "Distribution for item values v_i: uniform or normal (default uniform)",
+             cfg.vDistName)
+        .add("--v-mean", "M", "Mean for --v-dist normal (default 50.5)", cfg.opts.vSpec.mean)
+        .add("--v-stddev", "S", "Stddev for --v-dist normal (default 16.5)", cfg.opts.vSpec.stddev)
+        .add("--w-dist", "DIST", "Distribution for item costs w_i: uniform or normal (default uniform)",
+             cfg.wDistName)
+        .add("--w-mean", "M", "Mean for --w-dist normal (default 50.5)", cfg.opts.wSpec.mean)
+        .add("--w-stddev", "S", "Stddev for --w-dist normal (default 16.5)", cfg.opts.wSpec.stddev)
+        .add("--u-dist", "DIST",
+             "Distribution for capacity limits u_i: uniform or normal (default uniform)", cfg.uDistName)
+        .add("--u-mean", "M", "Mean for --u-dist normal, in [0,1] (default 0.5)", cfg.opts.uSpec.mean)
+        .add("--u-stddev", "S", "Stddev for --u-dist normal (default 0.1667)", cfg.opts.uSpec.stddev)
         .add("--threads", "T", "Worker threads for instance generation (default: all cores)",
              cfg.threads)
         .epilog(
             "  Solves are timed one at a time regardless of --threads, which only\n"
-            "  controls how instances are generated ahead of the timed loop.\n");
+            "  controls how instances are generated ahead of the timed loop.\n"
+            "  --v-dist/--w-dist/--u-dist normal rejection-samples outside [lo,hi]\n"
+            "  (item values/costs stay positive; capacity limits stay in [0,1]).\n");
 
     return parser;
 }
@@ -66,10 +86,22 @@ int main(int argc, char** argv) {
         case gka::cli::Parser::Status::Ok: break;
     }
 
+    auto resolveDist = [](const char* flag, const std::string& name, gka::FieldSpec& spec) {
+        try {
+            spec.dist = gka::parseDistributionKind(name);
+        } catch (const std::invalid_argument& e) {
+            throw std::invalid_argument(std::string(flag) + ": " + e.what());
+        }
+    };
+
     std::vector<int> counts;
     gka::SweepShape sweep = gka::SweepShape::Dense;
     try {
         gka::cli::requirePositive("--num-groups", cfg.numGroups);
+        if (cfg.delta > 0.0) gka::cli::requireInOpenInterval("--delta", cfg.delta, 0.0, 1.0);
+        resolveDist("--v-dist", cfg.vDistName, cfg.opts.vSpec);
+        resolveDist("--w-dist", cfg.wDistName, cfg.opts.wSpec);
+        resolveDist("--u-dist", cfg.uDistName, cfg.opts.uSpec);
         sweep = gka::parseSweepShape(cfg.sweepName);
         counts = gka::itemCounts(sweep, cfg.maxN);
     } catch (const std::exception& e) {

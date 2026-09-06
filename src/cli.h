@@ -57,5 +57,7 @@ private:
 void requirePositive(const char* flag, int value);
 void requirePositive(const char* flag, long long value);
 void requireGreaterThan(const char* flag, int value, int bound);
+// Throws unless lo < value < hi.
+void requireInOpenInterval(const char* flag, double value, double lo, double hi);
 
 }  // namespace gka::cli
