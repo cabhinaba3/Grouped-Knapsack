@@ -206,7 +206,7 @@ from scratch, with no reuse of prior work between them.
 | 10,000 | 0.56662 | 0.58601 |
 | 100,000 | 8.72552 | 9.77745 |
 
-![Runtime comparison](figures/runtime_comparison.png)
+![Runtime comparison](figures/runtime_comparison.svg)
 
 **Analysis:** Grouped is consistently at or slightly above Dantzig at every
 `n`, converging closer as `n` grows. This is expected, not a regression:
@@ -236,7 +236,7 @@ over `--num-seeds` seeds.
 | 10,000 | ~109 | 1.27% |
 | 100,000 | ~178 | 1.34% |
 
-![Error rate vs n](figures/error_rate.png)
+![Error rate vs n](figures/error_rate.svg)
 
 **Analysis:** error rate is stable at roughly 1.2-1.6% for `n >= 20`, with
 a higher 4.1% only at `n=10` (too few items for 20 groups to mean anything
@@ -265,7 +265,7 @@ would merge every item into one group, i.e.
 | 1.501 | 21 | 26.7% |
 | 3.880 | 10 | 33.5% |
 
-![Delta sensitivity](figures/delta_sensitivity.png)
+![Delta sensitivity](figures/delta_sensitivity.svg)
 
 **Analysis:** error rate rises smoothly and monotonically across roughly
 four orders of magnitude of `delta`, with no discontinuities — exactly the
