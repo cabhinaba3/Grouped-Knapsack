@@ -4,9 +4,7 @@ A C++17 implementation and experimental evaluation of the **Grouped Knapsack
 Allocation** algorithm against exact fractional-knapsack
 optimality (Dantzig's greedy rule):
 
-$
-V^*(I) = \max\{ \sum_i v_i z_i \mid z_i \in [0, u_i], \sum_i w_i z_i <= C \}
-$
+$V^*(I)=\max\left[\sum_i v_i z_i \mid z_i \in [0, u_i],\sum_i w_i z_i <= C\right]$
 
 with values $v_i > 0$, costs $w_i > 0$, capacity limits $u_i \in [0,1]$, and
 budget $C < F^w_{[n]}$.
