@@ -1,63 +1,43 @@
-#pragma once
+#ifndef GKA_SRC_CLI_H_
+#define GKA_SRC_CLI_H_
 
-#include <cstdint>
-#include <functional>
+#include <boost/program_options.hpp>
 #include <iosfwd>
+#include <optional>
 #include <string>
-#include <vector>
 
-// Minimal declarative parser for the "--flag VALUE" style both binaries use.
-// Each binary registers its own flags against its own variables, so the
-// parsing loop, the type conversions, the error messages and --help are
-// written once instead of once per main().
+// Thin conveniences around Boost.Program_options for the "--flag VALUE"
+// style both binaries use: a shared parse/--help/error-reporting flow, plus
+// semantic validators Boost itself does not provide.
 namespace gka::cli {
 
-class Parser {
-public:
-    Parser(std::string programName, std::string description);
+// Prints "Usage: {program_name} [OPTIONS]\n\n{description}\nOptions:\n{desc}",
+// then epilog if non-empty.
+void PrintUsage(std::ostream& os, const std::string& program_name, const std::string& description,
+                const boost::program_options::options_description& desc, const std::string& epilog);
 
-    // Registers "--flag VALUE". metavar names the value in the usage text.
-    // The typed overloads write straight into dest and report the flag name
-    // if the value does not convert.
-    Parser& add(std::string flag, std::string metavar, std::string help, std::string& dest);
-    Parser& add(std::string flag, std::string metavar, std::string help, int& dest);
-    Parser& add(std::string flag, std::string metavar, std::string help, double& dest);
-    Parser& add(std::string flag, std::string metavar, std::string help, std::uint64_t& dest);
-    // Escape hatch for values needing custom parsing (e.g. an enum).
-    Parser& add(std::string flag, std::string metavar, std::string help,
-                std::function<void(const std::string&)> apply);
+enum class Status { kOk, kHelpRequested, kError };
 
-    // Free-form text printed under the flag list by usage().
-    Parser& epilog(std::string text);
+// Parses argv[1..argc) against desc (which must already register "help,h")
+// and applies the results to whatever variables its options are bound to.
+// On kError, the reason and desc's usage text have already gone to
+// std::cerr; on kHelpRequested, desc's usage text (plus epilog) has gone to
+// std::cout. Both mean "return from main now".
+Status Parse(int argc, char** argv, const std::string& program_name, const std::string& description,
+             const std::string& epilog, const boost::program_options::options_description& desc,
+             boost::program_options::variables_map& vm);
 
-    enum class Status { Ok, HelpRequested, Error };
-
-    // Consumes argv[1..argc). On Error the reason and the usage text have
-    // already been written to std::cerr; on HelpRequested the usage text has
-    // gone to std::cout. Both mean "return from main now".
-    Status parse(int argc, char** argv) const;
-
-    void usage(std::ostream& os) const;
-
-private:
-    struct Option {
-        std::string flag;
-        std::string metavar;
-        std::string help;
-        std::function<void(const std::string&)> apply;
-    };
-
-    std::string program_;
-    std::string description_;
-    std::string epilog_;
-    std::vector<Option> options_;
-};
+// The exit code main() should return immediately for kHelpRequested (0) or
+// kError (1); nullopt for kOk, meaning the caller should proceed.
+std::optional<int> ExitCodeFor(Status status);
 
 // Argument validators, throwing std::invalid_argument naming the flag.
-void requirePositive(const char* flag, int value);
-void requirePositive(const char* flag, long long value);
-void requireGreaterThan(const char* flag, int value, int bound);
+void RequirePositive(const char* flag, int value);
+void RequirePositive(const char* flag, long long value);
+void RequireGreaterThan(const char* flag, int value, int bound);
 // Throws unless lo < value < hi.
-void requireInOpenInterval(const char* flag, double value, double lo, double hi);
+void RequireInOpenInterval(const char* flag, double value, double lo, double hi);
 
 }  // namespace gka::cli
+
+#endif  // GKA_SRC_CLI_H_

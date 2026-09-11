@@ -13,29 +13,30 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra)
 endif()
 
-# libstdc++ and libc++ implement the C++17 parallel algorithms on top of TBB,
-# so std::execution::par needs it linked, not just the <execution> header.
+# ParallelFor wraps tbb::parallel_for directly: libc++ does not implement the
+# C++17 parallel algorithms, so std::execution::par is not an option here.
 find_package(TBB REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
 # Everything both binaries share: instance generation, the two algorithms,
 # the experiment harness, the CLI parser and the parallel-for wrapper.
 add_library(gka_core STATIC
-    src/dataGenerate.cpp
-    src/dantzig.cpp
-    src/grouped.cpp
-    src/harness.cpp
-    src/parallel.cpp
-    src/cli.cpp
+    src/cli.cc
+    src/dantzig.cc
+    src/data_generate.cc
+    src/distribution_flags.cc
+    src/grouped.cc
+    src/harness.cc
+    src/parallel.cc
 )
 target_include_directories(gka_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(gka_core PUBLIC TBB::tbb Threads::Threads)
+target_link_libraries(gka_core PUBLIC TBB::tbb Threads::Threads Boost::program_options)
 
-add_executable(gka_dantzig src/main.cpp)
+add_executable(gka_dantzig src/main.cc)
 target_link_libraries(gka_dantzig PRIVATE gka_core)
 
-find_package(Matplot++ REQUIRED)
+add_subdirectory(matplotplusplus)
 
-
-add_executable(gka_experiments src/experiments.cpp)
+add_executable(gka_experiments src/experiments.cc)
 target_link_libraries(gka_experiments PRIVATE gka_core Matplot++::matplot)

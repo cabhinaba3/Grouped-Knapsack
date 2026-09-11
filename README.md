@@ -13,17 +13,18 @@ budget $C < F^w_{[n]}$.
 
 ```
 src/
-  dataGenerate.h/.cpp   Random instance generator: (v, w, u, C)
-  dantzig.h/.cpp        A1: exact greedy fractional-knapsack solver
-  grouped.h/.cpp        Algorithm 1 (Grouped Knapsack Allocation) +
+  data_generate.h/.cc   Random instance generator: (v, w, u, C)
+  dantzig.h/.cc         A1: exact greedy fractional-knapsack solver
+  grouped.h/.cc         Algorithm 1 (Grouped Knapsack Allocation) +
                          Algorithm 2 (SolveWaterLevel) from my_algo.tex,
                          plus the ratio-based grouping construction
-  harness.h/.cpp        Solve/time/aggregate layer shared by both binaries
-  parallel.h/.cpp       parallelFor over the C++17 parallel STL, plus the
+  harness.h/.cc         Solve/time/aggregate layer shared by both binaries
+  parallel.h/.cc        ParallelFor over tbb::parallel_for, plus the
                          thread-count cap
-  cli.h/.cpp            Shared "--flag VALUE" parser used by both binaries
-  main.cpp              gka_dantzig: single-run demo, prints a summary table
-  experiments.cpp       gka_experiments: the three experiments below
+  cli.h/.cc             Shared "--flag VALUE" parser used by both binaries
+  distribution_flags.h/.cc  Shared --{v,w,u}-dist/-mean/-stddev flag wiring
+  main.cc               gka_dantzig: single-run demo, prints a summary table
+  experiments.cc        gka_experiments: the three experiments below
 CMakeLists.txt
 my_algo.tex             The two algorithms this repo implements
 experiment_plan.md      The paper's fuller experimental plan (E1-E3);
@@ -34,11 +35,15 @@ figures/                Generated plots (git-ignored output)
 ## Building
 
 Requires a C++17 compiler, CMake >= 3.12, [oneTBB](https://github.com/uxlfoundation/oneTBB)
-(libstdc++ and libc++ implement the C++17 parallel algorithms on top of it,
-so `std::execution::par` needs it linked), and for `gka_experiments`:
-[Matplot++](https://github.com/alandefreitas/matplotplusplus) (built and
-installed, discoverable via `find_package(Matplot++ REQUIRED)`) and
-**gnuplot >= 5.2.6 on `PATH` at runtime** (Matplot++ shells out to it to
+(libc++ does not implement the C++17 parallel algorithms, so `gka::ParallelFor`
+calls `tbb::parallel_for` directly instead of relying on `std::execution::par`),
+[Boost](https://www.boost.org) with the `program_options` component (CLI
+parsing, `find_package(Boost REQUIRED COMPONENTS program_options)`), and for
+`gka_experiments`:
+[Matplot++](https://github.com/alandefreitas/matplotplusplus), vendored as a
+`matplotplusplus/` checkout at the repo root (built in-tree via
+`add_subdirectory`; not fetched automatically, so clone it there yourself
+first) and **gnuplot >= 5.2.6 on `PATH` at runtime** (Matplot++ shells out to it to
 render/save figures; compiling and linking do not need it, but running
 `gka_experiments` does).
 
@@ -58,15 +63,15 @@ This produces two executables:
 
 ### Threading
 
-Both binaries parallelise their **untimed** work over the C++17 parallel STL
+Both binaries parallelise their **untimed** work over TBB (via `gka::ParallelFor`)
 and leave every **timed** solve running on its own: concurrent solves contend
 for memory bandwidth, which would turn the runtime curve into a measurement
 of the machine's load rather than of the algorithms. Concretely:
 
 | Work | Runs |
 |---|---|
-| Instance generation and `deltaForGroupCount` | parallel |
-| Experiment 1's timed `dantzig` / grouped solves | serial |
+| Instance generation and `DeltaForGroupCount` | parallel |
+| Experiment 1's timed `Dantzig` / grouped solves | serial |
 | Experiment 2's error rate | free — read off experiment 1's solve |
 | Experiment 3 (whole delta x seed grid, never timed) | parallel |
 | `gka_dantzig`'s timed per-`n` solves | serial |
