@@ -124,9 +124,9 @@ above `INT_MAX`.
 (see "How delta is chosen"), not an absolute tolerance; it overrides
 `--num-groups` when set.
 
-Each of `v_i`, `w_i`, `u_i` is drawn independently and can be switched from
-the default `uniform` (over `[lo,hi]`, currently `[1,100]` for `v`/`w` and
-`[0,1]` for `u`) to `normal`, via `--{v,w,u}-mean`/`--{v,w,u}-stddev`.
+Each of $v_i$, $w_i$, $u_i$ is drawn independently and can be switched from
+the default `uniform` (over $[lo,hi]$, currently $[1,100]$ for $\frac{v}{w}$ and
+$[0,1]$ for $u$) to `normal`, via `--{v,w,u}-mean`/`--{v,w,u}-stddev`.
 A `normal` draw outside `[lo,hi]` is rejected and redrawn (bounded retries)
 rather than clamped, so accepted values stay genuinely Gaussian-shaped
 within the range instead of piling up at an edge; too tight a `[lo,hi]`
