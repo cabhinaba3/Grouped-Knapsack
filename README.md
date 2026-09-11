@@ -127,7 +127,7 @@ above `INT_MAX`.
 Each of $v_i$, $w_i$, $u_i$ is drawn independently and can be switched from
 the default `uniform` (over $[lo,hi]$, currently $[1,100]$ for $\frac{v}{w}$ and
 $[0,1]$ for $u$) to `normal`, via `--{v,w,u}-mean`/`--{v,w,u}-stddev`.
-A `normal` draw outside `[lo,hi]` is rejected and redrawn (bounded retries)
+A `normal` `draw outside `[lo,hi]` is rejected and redrawn (bounded retries)
 rather than clamped, so accepted values stay genuinely Gaussian-shaped
 within the range instead of piling up at an edge; too tight a `[lo,hi]`
 for the given mean/stddev raises a clear error instead of retrying forever.
@@ -148,3 +148,17 @@ GPL-2.0, see `LICENSE`.
 
 A big shoutout to [Matplot++](https://github.com/alandefreitas/matplotplusplus) for the great work.
 
+## Paper
+Cite the paper at,
+
+```
+@misc{chakraborty2026groupbasedresourceallocationmodel,
+      title={A Group-Based Resource Allocation Model for the Fractional Knapsack Problem}, 
+      author={Abhinaba Chakraborty},
+      year={2026},
+      eprint={2609.06470},
+      archivePrefix={arXiv},
+      primaryClass={cs.DS},
+      url={https://arxiv.org/abs/2609.06470}, 
+}
+```
